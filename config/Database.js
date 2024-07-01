@@ -1,5 +1,5 @@
-// import { Sequelize } from "sequelize";
-const { Sequelize } = require('sequelize');
+import { Sequelize } from "sequelize";
+// const { Sequelize } = require('sequelize');
 
 // const db = new Sequelize({
 //     dialect: "mysql",
@@ -20,4 +20,6 @@ const db = new Sequelize({
     port: process.env.DB_PORT,
 });
 
-module.exports = db;
+// module.exports = db;
+
+export default db;
