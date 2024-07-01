@@ -1,4 +1,5 @@
-import { Sequelize } from "sequelize";
+// import { Sequelize } from "sequelize";
+const { Sequelize } = require('sequelize');
 
 // const db = new Sequelize({
 //     dialect: "mysql",
@@ -8,15 +9,15 @@ import { Sequelize } from "sequelize";
 //     database: 'auth_db'
 // });
 
+// export default db;
+
 const sequelize = new Sequelize({
-    host: process.env.DB_HOST, 
-    user: process.env.DB_USERNAME, 
+    username: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
-    database: process.env.DATABASE,
-    port: process.env.APP_PORT,
-    dialect: "mysql",
+    database: process.env.DB_NAME,
+    dialect: 'mysql',
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
 });
 
-module.exports = sequelize
-
-// export default db;
+module.exports = sequelize;
