@@ -11,7 +11,7 @@ const { Sequelize } = require('sequelize');
 
 // export default db;
 
-const sequelize = new Sequelize({
+const db = new Sequelize({
     username: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
@@ -20,4 +20,4 @@ const sequelize = new Sequelize({
     port: process.env.DB_PORT,
 });
 
-module.exports = sequelize;
+module.exports = db;
