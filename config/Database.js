@@ -1,11 +1,22 @@
 import { Sequelize } from "sequelize";
 
-const db = new Sequelize({
+// const db = new Sequelize({
+//     dialect: "mysql",
+//     host: "localhost",
+//     username: "root",
+//     password: "",
+//     database: 'auth_db'
+// });
+
+const sequelize = new Sequelize({
+    host: process.env.DB_HOST, 
+    user: process.env.DB_USERNAME, 
+    password: process.env.DB_PASSWORD,
+    database: process.env.DATABASE,
+    port: process.env.APP_PORT,
     dialect: "mysql",
-    host: "bqd2qvtqnw3nn6x4lylz-mysql.services.clever-cloud.com",
-    username: "ufwxtahjsttqa07q",
-    password: "OcJyRHnYm8OBJVlu4129",
-    database: 'bqd2qvtqnw3nn6x4lylz'
 });
 
-export default db;
+module.exports = sequelize
+
+// export default db;
