@@ -10,7 +10,7 @@ export const Upload = async (req, res) => {
             return res.status(400).json({ message: "No file or NIK received" });
         }
 
-        const baseURL = "http://localhost:3000";
+        const baseURL = "http://bqd2qvtqnw3nn6x4lylz-mysql.services.clever-cloud.com:3306";
         const url = `${baseURL}/staticsss/images/${req.file.filename}`;
         const nik = req.body.nik;
         const filename = req.file.originalname;
