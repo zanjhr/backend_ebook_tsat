@@ -115,13 +115,18 @@ const addSubjudul = async (req, res) => {
     }
 
     // Upload the file to Supabase
+    // const { data, error } = await supabase
+    //   .storage
+    //   .from('ebook') // Replace with your Supabase bucket name
+    //   .upload(`documents/${originalname}`, buffer, {
+    //     contentType: mimetype,
+    //     upsert: true,
+    //   });
+
     const { data, error } = await supabase
       .storage
       .from('ebook') // Replace with your Supabase bucket name
-      .upload(`documents/${originalname}`, buffer, {
-        contentType: mimetype,
-        upsert: true,
-      });
+      .upload(`documents/${originalname}`, file);
 
     if (error) {
       return res.status(500).send({ message: 'Failed to upload file to Supabase', error: error.message });
