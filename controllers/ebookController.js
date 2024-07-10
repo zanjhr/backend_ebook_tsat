@@ -117,9 +117,10 @@ const addSubjudul = async (req, res) => {
     // Upload the file to Supabase
     const { data, error } = await supabase
       .storage
-      .from('documents') // Replace with your Supabase bucket name
+      .from('ebook') // Replace with your Supabase bucket name
       .upload(`documents/${originalname}`, buffer, {
         contentType: mimetype,
+        upsert: true,
       });
 
     if (error) {
@@ -130,7 +131,7 @@ const addSubjudul = async (req, res) => {
     const newSubjudul = await Subjudul.create({
       subjudul,
       name: originalname,
-      path: data.Key, // Use the key from Supabase response as the path
+      path: data.Key || data.path, // Use the key/path from Supabase response as the path
     });
 
     // Associate subjudul with book
