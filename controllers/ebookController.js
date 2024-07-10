@@ -2,6 +2,32 @@
 // ebookController.js
 import { Judul, Subjudul } from '../models/ebookModel.js';
 import path from 'path';
+import supabase from '../config/supabase.js'; // Import your Supabase client
+
+// Fungsi untuk mendapatkan semua judul
+const getAllJudul = async (req, res) => {
+  try {
+    // Mengambil semua judul dari database
+    const allJudul = await Judul.findAll({
+      include: { model: Subjudul, as: 'subjudul' },
+    });
+
+    // Send a success response with all Judul
+    res.status(200).json({
+      status: 'success',
+      data: allJudul,
+    });
+  } catch (error) {
+    // Log the error
+    console.error(error);
+
+    // Send an error response
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to get all Judul',
+    });
+  }
+};
 
 const addJudul = async (req, res) => {
   try {
@@ -30,63 +56,89 @@ const addJudul = async (req, res) => {
   }
 };
 
-// Fungsi untuk mendapatkan semua judul
-const getAllJudul = async (req, res) => {
-  try {
-    // Mengambil semua judul dari database
-    const allJudul = await Judul.findAll({
-      include: { model: Subjudul, as: 'subjudul' },
-    });
+// const addSubjudul = async (req, res) => {
+//   try {
+//     const { bookId } = req.params; // Mengambil ID buku dari URL
+//     const { subjudul } = req.body;
 
-    // Send a success response with all Judul
-    res.status(200).json({
-      status: 'success',
-      data: allJudul,
-    });
-  } catch (error) {
-    // Log the error
-    console.error(error);
+//     // Ambil informasi file yang diunggah dari request
+//     const { filename, path: filePath } = req.file;
 
-    // Send an error response
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to get all Judul',
-    });
-  }
-};
+//     // Temukan buku berdasarkan ID yang diberikan
+//     const existingBook = await Judul.findByPk(bookId, {
+//       include: { model: Subjudul, as: 'subjudul' },
+//     });
 
+//     // Cek apakah buku ditemukan
+//     if (!existingBook) {
+//       return res.status(404).send({ message: 'Buku tidak ditemukan' });
+//     }
+
+//     // Tambahkan subjudul ke dalam array subjudul di buku yang ada
+//     const newSubjudul = await Subjudul.create({
+//       subjudul,
+//       name: filename,
+//       path: filePath,
+//     });
+
+//     // Hubungkan subjudul dengan buku
+//     await existingBook.addSubjudul(newSubjudul);
+
+//     res.status(201).send({ message: 'Subjudul berhasil ditambahkan', book: existingBook });
+//   } catch (error) {
+//     res.status(500).send({ message: 'Gagal menambahkan subjudul', error: error.message });
+//   }
+// };
 
 const addSubjudul = async (req, res) => {
   try {
-    const { bookId } = req.params; // Mengambil ID buku dari URL
+    const { bookId } = req.params; // Get book ID from URL
     const { subjudul } = req.body;
 
-    // Ambil informasi file yang diunggah dari request
-    const { filename, path: filePath } = req.file;
+    // Get file information from request
+    const file = req.file;
 
-    // Temukan buku berdasarkan ID yang diberikan
+    if (!file) {
+      return res.status(400).send({ message: 'No file uploaded' });
+    }
+
+    const { originalname, buffer, mimetype } = file;
+
+    // Find the book by the given ID
     const existingBook = await Judul.findByPk(bookId, {
       include: { model: Subjudul, as: 'subjudul' },
     });
 
-    // Cek apakah buku ditemukan
+    // Check if book is found
     if (!existingBook) {
-      return res.status(404).send({ message: 'Buku tidak ditemukan' });
+      return res.status(404).send({ message: 'Book not found' });
     }
 
-    // Tambahkan subjudul ke dalam array subjudul di buku yang ada
+    // Upload the file to Supabase
+    const { data, error } = await supabase
+      .storage
+      .from('documents') // Replace with your Supabase bucket name
+      .upload(`documents/${originalname}`, buffer, {
+        contentType: mimetype,
+      });
+
+    if (error) {
+      return res.status(500).send({ message: 'Failed to upload file to Supabase', error: error.message });
+    }
+
+    // Create a new subjudul
     const newSubjudul = await Subjudul.create({
       subjudul,
-      name: filename,
-      path: filePath,
+      name: originalname,
+      path: data.Key, // Use the key from Supabase response as the path
     });
 
-    // Hubungkan subjudul dengan buku
+    // Associate subjudul with book
     await existingBook.addSubjudul(newSubjudul);
 
-    res.status(201).send({ message: 'Subjudul berhasil ditambahkan', book: existingBook });
+    res.status(201).send({ message: 'Subjudul successfully added', book: existingBook });
   } catch (error) {
-    res.status(500).send({ message: 'Gagal menambahkan subjudul', error: error.message });
+    res.status(500).send({ message: 'Failed to add subjudul', error: error.message });
   }
 };
 
