@@ -413,10 +413,8 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
   try {
     const { subjudulId } = req.params;
 
-    // Koneksi ke MySQL/MariaDB
     const connection = await mysql.createConnection(mysqlConfig);
 
-    // Ambil data dari MySQL/MariaDB
     const [rows] = await connection.execute(
       'SELECT _id, name FROM Subjuduls WHERE _id = ?',
       [subjudulId]
@@ -437,13 +435,13 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
       .list('documents');
 
     if (error) {
-      console.log('Data tidak ditemukan di Supabase:', error.message);
+      console.log('Error saat mengambil file dari Supabase:', JSON.stringify(error));
       return res.status(404).json({ error: 'Data tidak ditemukan di Supabase' });
     }
 
-    console.log('Files from Supabase:', JSON.stringify(files, null, 2));
+    console.log('Files dari Supabase:', JSON.stringify(files, null, 2));
 
-    const matchedFile = files.find(file => file.name === `${name}`);
+    const matchedFile = files.find(file => file.name === `${name}.pdf`);
 
     if (!matchedFile) {
       console.log('Berkas PDF tidak ditemukan di Supabase.');
@@ -452,17 +450,15 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
 
     const pdfPath = `documents/${matchedFile.name}`;
 
-    // Set header respons untuk tipe konten PDF
     res.setHeader('Content-Type', 'application/pdf');
 
-    // Ambil URL file dari Supabase Storage
     const { data: fileUrl, error: urlError } = supabase
       .storage
       .from('ebook')
       .getPublicUrl(pdfPath);
 
     if (urlError || !fileUrl) {
-      console.log('Gagal mendapatkan URL berkas PDF:', urlError ? urlError.message : 'No file URL');
+      console.log('Gagal mendapatkan URL berkas PDF:', JSON.stringify(urlError));
       return res.status(500).json({ error: 'Gagal mendapatkan URL berkas PDF' });
     }
 
