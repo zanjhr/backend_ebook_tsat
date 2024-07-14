@@ -7,10 +7,10 @@ import { read } from 'fs';
 import mysql from 'mysql2/promise';
 
 const mysqlConfig = {
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'auth_db',
+  host: 'sql.freedb.tech',
+  user: 'freedb_zanjhr',
+  password: 'M3H?A6ejzrW99fs',
+  database: 'freedb_db_ebook',
 };
 
 // Fungsi untuk mendapatkan semua judul
