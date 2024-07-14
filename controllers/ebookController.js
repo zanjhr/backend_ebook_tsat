@@ -422,7 +422,12 @@ const readPdf = async (req, res) => {
       .download(filePath);
 
     if (error) {
+      console.error('Supabase download error:', error.message);
       return res.status(500).send({ message: 'Failed to download file from Supabase', error: error.message });
+    }
+
+    if (!data) {
+      return res.status(404).send({ message: 'File not found in Supabase' });
     }
 
     // Set the response content type to PDF
@@ -430,8 +435,9 @@ const readPdf = async (req, res) => {
     res.setHeader('Content-Disposition', `inline; filename=${subjudul.name}`);
 
     // Send the file buffer as the response
-    res.send(data);
+    res.send(Buffer.from(await data.arrayBuffer()));
   } catch (error) {
+    console.error('Read PDF error:', error.message);
     res.status(500).send({ message: 'Failed to read PDF', error: error.message });
   }
 };
