@@ -3,6 +3,7 @@
 import { Judul, Subjudul } from '../models/ebookModel.js';
 import path from 'path';
 import supabase from '../config/supabase.js'; // Import your Supabase client
+import { read } from 'fs';
 
 // Fungsi untuk mendapatkan semua judul
 const getAllJudul = async (req, res) => {
@@ -399,6 +400,42 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
   }
 };
 
+const readPdf = async (req, res) => {
+  try {
+    const { subjudulId } = req.params; // Get subjudul ID from URL
+
+    // Find the subjudul by the given ID
+    const subjudul = await Subjudul.findByPk(subjudulId);
+
+    // Check if subjudul is found
+    if (!subjudul) {
+      return res.status(404).send({ message: 'Subjudul not found' });
+    }
+
+    // Retrieve the file path from the subjudul
+    const filePath = subjudul.path;
+
+    // Download the file from Supabase
+    const { data, error } = await supabase
+      .storage
+      .from('ebook') // Replace with your Supabase bucket name
+      .download(filePath);
+
+    if (error) {
+      return res.status(500).send({ message: 'Failed to download file from Supabase', error: error.message });
+    }
+
+    // Set the response content type to PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=${subjudul.name}`);
+
+    // Send the file buffer as the response
+    res.send(data);
+  } catch (error) {
+    res.status(500).send({ message: 'Failed to read PDF', error: error.message });
+  }
+};
+
 
 const getAllSubjudul = async (req, res) => {
   try {
@@ -422,4 +459,4 @@ const getAllSubjudul = async (req, res) => {
   }
 };
 
-export default { addJudul, getAllJudul, addSubjudul, getSubjudulById, getSubjudul, deleteJudul, deleteSubjudul, updateJudul, updateSubjudul, getPdfBySubjudulIdAndName, getAllSubjudul };
+export default { addJudul, getAllJudul, addSubjudul, getSubjudulById, readPdf, getSubjudul, deleteJudul, deleteSubjudul, updateJudul, updateSubjudul, getPdfBySubjudulIdAndName, getAllSubjudul };
