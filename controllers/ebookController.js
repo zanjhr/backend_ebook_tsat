@@ -4,6 +4,14 @@ import { Judul, Subjudul } from '../models/ebookModel.js';
 import path from 'path';
 import supabase from '../config/supabase.js'; // Import your Supabase client
 import { read } from 'fs';
+import mysql from 'mysql2/promise';
+
+const mysqlConfig = {
+  host: 'localhost',
+  user: 'root',
+  password: '',
+  database: 'auth_db',
+};
 
 // Fungsi untuk mendapatkan semua judul
 const getAllJudul = async (req, res) => {
@@ -307,6 +315,59 @@ const updateSubjudul = async (req, res) => {
   }
 };
 
+
+// const getPdfBySubjudulIdAndName = async (req, res) => {
+//   try {
+//     const { subjudulId, name } = req.params;
+
+//     console.log('Subjudul ID:', subjudulId);
+//     console.log('PDF Name:', name);
+
+//     // Temukan subjudul berdasarkan ID dan nama yang diberikan
+//     const { data: subjudul, error: findError } = await supabase
+//       .from('Subjudul')
+//       .select('*')
+//       .eq('_id', subjudulId)
+//       .eq('name', name)
+//       .single();
+
+//     if (findError || !subjudul) {
+//       console.log('Berkas PDF tidak ditemukan.');
+//       return res.status(404).json({ error: 'Berkas PDF tidak ditemukan' });
+//     }
+
+//     // Dapatkan alamat berkas PDF dari Supabase storage
+//     const pdfPath = subjudul.path;
+
+//     // Periksa apakah berkas tersebut memiliki ekstensi .pdf
+//     if (path.extname(pdfPath) !== '.pdf') {
+//       console.log('Berkas yang diminta bukan berkas PDF.');
+//       return res.status(400).json({ error: 'Berkas yang diminta bukan berkas PDF' });
+//     }
+
+//     // Fetch the PDF file from Supabase storage
+//     const { data: pdfFile, error: downloadError } = await supabase.storage
+//       .from('your_bucket_name') // Replace with your bucket name
+//       .download(pdfPath);
+
+//     if (downloadError) {
+//       console.error('Terjadi kesalahan saat mengunduh berkas:', downloadError.message);
+//       return res.status(500).json({ error: 'Internal Server Error' });
+//     }
+
+//     // Set header respons untuk tipe konten PDF
+//     res.setHeader('Content-Type', 'application/pdf');
+
+//     // Kirimkan berkas PDF ke respons
+//     pdfFile.arrayBuffer().then(buffer => {
+//       res.send(Buffer.from(buffer));
+//     });
+//   } catch (error) {
+//     console.error('Terjadi kesalahan:', error.message);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
+
 // const getPdfBySubjudulIdAndName = async (req, res) => {
 //   try {
 //     const { subjudulId, name } = req.params;
@@ -350,67 +411,76 @@ const updateSubjudul = async (req, res) => {
 
 const getPdfBySubjudulIdAndName = async (req, res) => {
   try {
-    const { subjudulId, name } = req.params;
+    const { subjudulId } = req.params;
 
-    console.log('Subjudul ID:', subjudulId);
-    console.log('PDF Name:', name);
+    // Koneksi ke MySQL/MariaDB
+    const connection = await mysql.createConnection(mysqlConfig);
 
-    // Temukan subjudul berdasarkan ID dan nama yang diberikan
-    const { data: subjudul, error: findError } = await supabase
-      .from('Subjudul')
-      .select('*')
-      .eq('_id', subjudulId)
-      .eq('name', name)
-      .single();
+    // Ambil data dari MySQL/MariaDB
+    const [rows] = await connection.execute(
+      'SELECT _id, name FROM Subjuduls WHERE _id = ?',
+      [subjudulId]
+    );
 
-    if (findError || !subjudul) {
-      console.log('Berkas PDF tidak ditemukan.');
-      return res.status(404).json({ error: 'Berkas PDF tidak ditemukan' });
+    if (rows.length === 0) {
+      console.log('Data tidak ditemukan di MySQL/MariaDB.');
+      return res.status(404).json({ error: 'Data tidak ditemukan di MySQL/MariaDB' });
     }
 
-    // Dapatkan alamat berkas PDF dari Supabase storage
-    const pdfPath = subjudul.path;
+    const { _id, name } = rows[0];
+    console.log('Data dari MySQL:', { _id, name });
 
-    // Periksa apakah berkas tersebut memiliki ekstensi .pdf
-    if (path.extname(pdfPath) !== '.pdf') {
-      console.log('Berkas yang diminta bukan berkas PDF.');
-      return res.status(400).json({ error: 'Berkas yang diminta bukan berkas PDF' });
+    // Ambil data dari Supabase Storage
+    const { data: files, error } = await supabase
+      .storage
+      .from('ebook')
+      .list('documents');
+
+    if (error) {
+      console.log('Data tidak ditemukan di Supabase:', error.message);
+      return res.status(404).json({ error: 'Data tidak ditemukan di Supabase' });
     }
 
-    // Fetch the PDF file from Supabase storage
-    const { data: pdfFile, error: downloadError } = await supabase.storage
-      .from('your_bucket_name') // Replace with your bucket name
-      .download(pdfPath);
+    const matchedFile = files.find(file => file.name === `${name}`);
 
-    if (downloadError) {
-      console.error('Terjadi kesalahan saat mengunduh berkas:', downloadError.message);
-      return res.status(500).json({ error: 'Internal Server Error' });
+    if (!matchedFile) {
+      console.log('Berkas PDF tidak ditemukan di Supabase.');
+      return res.status(404).json({ error: 'Berkas PDF tidak ditemukan di Supabase' });
     }
+
+    const pdfPath = `documents/${matchedFile.name}`;
 
     // Set header respons untuk tipe konten PDF
     res.setHeader('Content-Type', 'application/pdf');
 
-    // Kirimkan berkas PDF ke respons
-    pdfFile.arrayBuffer().then(buffer => {
-      res.send(Buffer.from(buffer));
-    });
+    // Ambil URL file dari Supabase Storage
+    const { data: fileUrl, error: urlError } = supabase
+      .storage
+      .from('ebook')
+      .getPublicUrl(pdfPath);
+
+    if (urlError || !fileUrl) {
+      console.log('Gagal mendapatkan URL berkas PDF:', urlError.message);
+      return res.status(500).json({ error: 'Gagal mendapatkan URL berkas PDF' });
+    }
+
+    // Redirect ke URL file
+    res.redirect(fileUrl.publicUrl);
   } catch (error) {
     console.error('Terjadi kesalahan:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-
 const readPdf = async (req, res) => {
   try {
-    const { subjudulId, name } = req.params; // Get subjudul ID and name from URL
+    const { subjudulId, name } = req.params; // Get subjudul ID from URL
 
     // Find the subjudul by the given ID
     const subjudul = await Subjudul.findByPk(subjudulId);
 
     // Check if subjudul is found
     if (!subjudul) {
-      console.error('Subjudul not found:', subjudulId);
       return res.status(404).send({ message: 'Subjudul not found' });
     }
 
@@ -429,20 +499,15 @@ const readPdf = async (req, res) => {
     }
 
     if (!data) {
-      console.error('File not found in Supabase:', filePath);
       return res.status(404).send({ message: 'File not found in Supabase' });
     }
 
-    // Convert the data to a buffer
-    const buffer = Buffer.from(await data.arrayBuffer());
-
     // Set the response content type to PDF
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename=${name}`);
-    res.setHeader('Content-Length', buffer.length);
+    res.setHeader('Content-Disposition', `inline; filename=${subjudul.name}`);
 
     // Send the file buffer as the response
-    res.send(buffer);
+    res.send(Buffer.from(await data.arrayBuffer()));
   } catch (error) {
     console.error('Read PDF error:', error.message);
     res.status(500).send({ message: 'Failed to read PDF', error: error.message });
