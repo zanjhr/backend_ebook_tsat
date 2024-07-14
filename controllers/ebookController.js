@@ -306,6 +306,47 @@ const updateSubjudul = async (req, res) => {
   }
 };
 
+// const getPdfBySubjudulIdAndName = async (req, res) => {
+//   try {
+//     const { subjudulId, name } = req.params;
+
+//     console.log('Subjudul ID:', subjudulId);
+//     console.log('PDF Name:', name);
+
+//     // Temukan subjudul berdasarkan ID dan nama yang diberikan
+//     const subjudul = await Subjudul.findOne({
+//       where: {
+//         _id: subjudulId,
+//         name: name
+//       },
+//       include: { model: Judul, as: 'Judul' } // Perbarui asosiasi dengan as yang sesuai
+//     });
+
+//     if (!subjudul) {
+//       console.log('Berkas PDF tidak ditemukan.');
+//       return res.status(404).json({ error: 'Berkas PDF tidak ditemukan' });
+//     }
+
+//     // Dapatkan alamat berkas PDF
+//     const pdfPath = subjudul.path;
+
+//     // Periksa apakah berkas tersebut memiliki ekstensi .pdf
+//     if (path.extname(pdfPath) !== '.pdf') {
+//       console.log('Berkas yang diminta bukan berkas PDF.');
+//       return res.status(400).json({ error: 'Berkas yang diminta bukan berkas PDF' });
+//     }
+
+//     // Set header respons untuk tipe konten PDF
+//     res.setHeader('Content-Type', 'application/pdf');
+
+//     // Kirimkan berkas PDF ke respons dengan path absolut
+//     res.sendFile(path.resolve(pdfPath));
+//   } catch (error) {
+//     console.error('Terjadi kesalahan:', error.message);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
+
 const getPdfBySubjudulIdAndName = async (req, res) => {
   try {
     const { subjudulId, name } = req.params;
@@ -314,20 +355,19 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
     console.log('PDF Name:', name);
 
     // Temukan subjudul berdasarkan ID dan nama yang diberikan
-    const subjudul = await Subjudul.findOne({
-      where: {
-        _id: subjudulId,
-        name: name
-      },
-      include: { model: Judul, as: 'Judul' } // Perbarui asosiasi dengan as yang sesuai
-    });
+    const { data: subjudul, error: findError } = await supabase
+      .from('Subjudul')
+      .select('*')
+      .eq('_id', subjudulId)
+      .eq('name', name)
+      .single();
 
-    if (!subjudul) {
+    if (findError || !subjudul) {
       console.log('Berkas PDF tidak ditemukan.');
       return res.status(404).json({ error: 'Berkas PDF tidak ditemukan' });
     }
 
-    // Dapatkan alamat berkas PDF
+    // Dapatkan alamat berkas PDF dari Supabase storage
     const pdfPath = subjudul.path;
 
     // Periksa apakah berkas tersebut memiliki ekstensi .pdf
@@ -336,11 +376,23 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
       return res.status(400).json({ error: 'Berkas yang diminta bukan berkas PDF' });
     }
 
+    // Fetch the PDF file from Supabase storage
+    const { data: pdfFile, error: downloadError } = await supabase.storage
+      .from('your_bucket_name') // Replace with your bucket name
+      .download(pdfPath);
+
+    if (downloadError) {
+      console.error('Terjadi kesalahan saat mengunduh berkas:', downloadError.message);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
     // Set header respons untuk tipe konten PDF
     res.setHeader('Content-Type', 'application/pdf');
 
-    // Kirimkan berkas PDF ke respons dengan path absolut
-    res.sendFile(path.resolve(pdfPath));
+    // Kirimkan berkas PDF ke respons
+    pdfFile.arrayBuffer().then(buffer => {
+      res.send(Buffer.from(buffer));
+    });
   } catch (error) {
     console.error('Terjadi kesalahan:', error.message);
     res.status(500).json({ error: 'Internal Server Error' });
