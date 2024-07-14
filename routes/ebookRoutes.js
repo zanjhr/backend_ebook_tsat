@@ -16,6 +16,6 @@ router.put('/update/:bookId', Ebook.updateJudul);
 router.put('/update/:bookId/subjudul/:subjudulId', Ebook.updateSubjudul);
 router.get('/pdfSubjudul/:subjudulId/:name', Ebook.getPdfBySubjudulIdAndName);
 router.get('/getSubjudul', Ebook.getAllSubjudul);
-router.get('/readPdf/:subjudulId', Ebook.readPdf)
+router.get('/readPdf/:subjudulId/:name', Ebook.readPdf)
 
 export default router;

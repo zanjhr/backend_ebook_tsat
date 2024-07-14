@@ -400,15 +400,17 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
   }
 };
 
+
 const readPdf = async (req, res) => {
   try {
-    const { subjudulId } = req.params; // Get subjudul ID from URL
+    const { subjudulId, name } = req.params; // Get subjudul ID and name from URL
 
     // Find the subjudul by the given ID
     const subjudul = await Subjudul.findByPk(subjudulId);
 
     // Check if subjudul is found
     if (!subjudul) {
+      console.error('Subjudul not found:', subjudulId);
       return res.status(404).send({ message: 'Subjudul not found' });
     }
 
@@ -427,15 +429,20 @@ const readPdf = async (req, res) => {
     }
 
     if (!data) {
+      console.error('File not found in Supabase:', filePath);
       return res.status(404).send({ message: 'File not found in Supabase' });
     }
 
+    // Convert the data to a buffer
+    const buffer = Buffer.from(await data.arrayBuffer());
+
     // Set the response content type to PDF
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename=${subjudul.name}`);
+    res.setHeader('Content-Disposition', `inline; filename=${name}`);
+    res.setHeader('Content-Length', buffer.length);
 
     // Send the file buffer as the response
-    res.send(Buffer.from(await data.arrayBuffer()));
+    res.send(buffer);
   } catch (error) {
     console.error('Read PDF error:', error.message);
     res.status(500).send({ message: 'Failed to read PDF', error: error.message });
