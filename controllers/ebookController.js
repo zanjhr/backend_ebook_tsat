@@ -443,7 +443,7 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
 
     console.log('Files from Supabase:', JSON.stringify(files, null, 2));
 
-    const matchedFile = files.find(file => file.name === `${name}.pdf`);
+    const matchedFile = files.find(file => file.name === `${name}`);
 
     if (!matchedFile) {
       console.log('Berkas PDF tidak ditemukan di Supabase.');
