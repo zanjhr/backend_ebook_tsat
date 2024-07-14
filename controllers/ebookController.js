@@ -441,7 +441,9 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
       return res.status(404).json({ error: 'Data tidak ditemukan di Supabase' });
     }
 
-    const matchedFile = files.find(file => file.name === `${name}`);
+    console.log('Files from Supabase:', JSON.stringify(files, null, 2));
+
+    const matchedFile = files.find(file => file.name === `${name}.pdf`);
 
     if (!matchedFile) {
       console.log('Berkas PDF tidak ditemukan di Supabase.');
@@ -460,9 +462,11 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
       .getPublicUrl(pdfPath);
 
     if (urlError || !fileUrl) {
-      console.log('Gagal mendapatkan URL berkas PDF:', urlError.message);
+      console.log('Gagal mendapatkan URL berkas PDF:', urlError ? urlError.message : 'No file URL');
       return res.status(500).json({ error: 'Gagal mendapatkan URL berkas PDF' });
     }
+
+    console.log('File URL:', fileUrl);
 
     // Redirect ke URL file
     res.redirect(fileUrl.publicUrl);
