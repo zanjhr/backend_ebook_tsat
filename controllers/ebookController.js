@@ -5,12 +5,23 @@ import path from 'path';
 import supabase from '../config/supabase.js'; // Import your Supabase client
 import { read } from 'fs';
 import mysql from 'mysql2/promise';
+import mysql2 from 'mysql2';
+
+// const mysqlConfig = {
+//   host: 'localhost',
+//   user: 'root',
+//   password: '',
+//   database: 'auth_db',
+// };
 
 const mysqlConfig = {
-  host: 'sql.freedb.tech',
   user: 'freedb_zanjhr',
   password: 'M3H?A6ejzrW99fs',
   database: 'freedb_db_ebook',
+  dialect: 'mysql',
+  dialectModule: mysql2,
+  host: 'sql.freedb.tech',
+  logging: console.log,
 };
 
 // Fungsi untuk mendapatkan semua judul
@@ -113,6 +124,14 @@ const addSubjudul = async (req, res) => {
 
     const { originalname, buffer, mimetype } = file;
 
+    // Log buffer size and mimetype for debugging
+    console.log(`Buffer size: ${buffer.length}, Mimetype: ${mimetype}`);
+
+    // Check if the uploaded file is a PDF
+    if (mimetype !== 'application/pdf') {
+      return res.status(400).send({ message: 'Only PDF files are allowed' });
+    }
+
     // Find the book by the given ID
     const existingBook = await Judul.findByPk(bookId, {
       include: { model: Subjudul, as: 'subjudul' },
@@ -124,18 +143,13 @@ const addSubjudul = async (req, res) => {
     }
 
     // Upload the file to Supabase
-    // const { data, error } = await supabase
-    //   .storage
-    //   .from('ebook') // Replace with your Supabase bucket name
-    //   .upload(`documents/${originalname}`, buffer, {
-    //     contentType: mimetype,
-    //     upsert: true,
-    //   });
-
     const { data, error } = await supabase
       .storage
       .from('ebook') // Replace with your Supabase bucket name
-      .upload(`documents/${originalname}`, file);
+      .upload(`documents/${originalname}`, buffer, {
+        contentType: mimetype,
+        upsert: true,
+      });
 
     if (error) {
       return res.status(500).send({ message: 'Failed to upload file to Supabase', error: error.message });
@@ -368,53 +382,15 @@ const updateSubjudul = async (req, res) => {
 //   }
 // };
 
-// const getPdfBySubjudulIdAndName = async (req, res) => {
-//   try {
-//     const { subjudulId, name } = req.params;
-
-//     console.log('Subjudul ID:', subjudulId);
-//     console.log('PDF Name:', name);
-
-//     // Temukan subjudul berdasarkan ID dan nama yang diberikan
-//     const subjudul = await Subjudul.findOne({
-//       where: {
-//         _id: subjudulId,
-//         name: name
-//       },
-//       include: { model: Judul, as: 'Judul' } // Perbarui asosiasi dengan as yang sesuai
-//     });
-
-//     if (!subjudul) {
-//       console.log('Berkas PDF tidak ditemukan.');
-//       return res.status(404).json({ error: 'Berkas PDF tidak ditemukan' });
-//     }
-
-//     // Dapatkan alamat berkas PDF
-//     const pdfPath = subjudul.path;
-
-//     // Periksa apakah berkas tersebut memiliki ekstensi .pdf
-//     if (path.extname(pdfPath) !== '.pdf') {
-//       console.log('Berkas yang diminta bukan berkas PDF.');
-//       return res.status(400).json({ error: 'Berkas yang diminta bukan berkas PDF' });
-//     }
-
-//     // Set header respons untuk tipe konten PDF
-//     res.setHeader('Content-Type', 'application/pdf');
-
-//     // Kirimkan berkas PDF ke respons dengan path absolut
-//     res.sendFile(path.resolve(pdfPath));
-//   } catch (error) {
-//     console.error('Terjadi kesalahan:', error.message);
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// };
 
 const getPdfBySubjudulIdAndName = async (req, res) => {
   try {
     const { subjudulId } = req.params;
 
+    // Koneksi ke MySQL/MariaDB
     const connection = await mysql.createConnection(mysqlConfig);
 
+    // Ambil data dari MySQL/MariaDB
     const [rows] = await connection.execute(
       'SELECT _id, name FROM Subjuduls WHERE _id = ?',
       [subjudulId]
@@ -435,11 +411,9 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
       .list('documents');
 
     if (error) {
-      console.log('Error saat mengambil file dari Supabase:', JSON.stringify(error));
+      console.log('Data tidak ditemukan di Supabase:', error.message);
       return res.status(404).json({ error: 'Data tidak ditemukan di Supabase' });
     }
-
-    console.log('Files dari Supabase:', JSON.stringify(files, null, 2));
 
     const matchedFile = files.find(file => file.name === `${name}`);
 
@@ -450,19 +424,21 @@ const getPdfBySubjudulIdAndName = async (req, res) => {
 
     const pdfPath = `documents/${matchedFile.name}`;
 
+    // Set header respons untuk tipe konten PDF
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Type', 'text/plain;charset=UTF-8');
 
+
+    // Ambil URL file dari Supabase Storage
     const { data: fileUrl, error: urlError } = supabase
       .storage
       .from('ebook')
       .getPublicUrl(pdfPath);
 
     if (urlError || !fileUrl) {
-      console.log('Gagal mendapatkan URL berkas PDF:', JSON.stringify(urlError));
+      console.log('Gagal mendapatkan URL berkas PDF:', urlError.message);
       return res.status(500).json({ error: 'Gagal mendapatkan URL berkas PDF' });
     }
-
-    console.log('File URL:', fileUrl);
 
     // Redirect ke URL file
     res.redirect(fileUrl.publicUrl);
