@@ -1,28 +1,90 @@
 import Image from "../models/imageModel.js";
+import supabase from '../config/supabase.js'; // Import your Supabase client
+import fs from 'fs';
 
+
+// export const uploadImage = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const { filename } = req.file;
+
+//         if (id) {
+//             const existingImage = await Image.findByPk(id);
+
+//             if (existingImage) {
+//                 // Jika ID ditemukan ganti gambar yang sudah ada
+//                 await existingImage.update({ filename });
+
+//                 return res.status(200).json({
+//                     success: true,
+//                     message: "Image Replaced successfully",
+//                     data: existingImage,
+//                 });
+//             }
+//         }
+
+//         // Jika ID belum ditemukan 
+//         const newImage = await Image.create({ filename });
+
+//         res.status(201).json({
+//             success: true,
+//             message: "Image uploaded successfully",
+//             data: newImage,
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Internal Server Error",
+//             error: error.message,
+//         });
+//     }
+// };
 
 export const uploadImage = async (req, res) => {
     try {
         const { id } = req.params;
         const { filename } = req.file;
+        const filePath = req.file.path; // The path to the file on your server
+
+        // Read the file
+        const fileBuffer = fs.readFileSync(filePath);
+
+        // Upload to Supabase storage
+        const { data, error } = await supabase
+            .storage
+            .from('your-bucket-name') // Replace with your Supabase bucket name
+            .upload(`public/${filename}`, fileBuffer, {
+                contentType: req.file.mimetype,
+            });
+
+        if (error) {
+            throw error;
+        }
+
+        // Get the public URL of the uploaded file
+        const publicUrl = supabase
+            .storage
+            .from('pictures')
+            .getPublicUrl(`public/${filename}`).publicURL;
 
         if (id) {
             const existingImage = await Image.findByPk(id);
 
             if (existingImage) {
-                // Jika ID ditemukan ganti gambar yang sudah ada
-                await existingImage.update({ filename });
+                // If ID found, replace the existing image
+                await existingImage.update({ filename: publicUrl });
 
                 return res.status(200).json({
                     success: true,
-                    message: "Image Replaced successfully",
+                    message: "Image replaced successfully",
                     data: existingImage,
                 });
             }
         }
 
-        // Jika ID belum ditemukan 
-        const newImage = await Image.create({ filename });
+        // If ID not found, create a new image entry
+        const newImage = await Image.create({ filename: publicUrl });
 
         res.status(201).json({
             success: true,
