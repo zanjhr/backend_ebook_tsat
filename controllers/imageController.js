@@ -41,11 +41,19 @@ import fs from 'fs';
 //     }
 // };
 
-export const uploadImage = async (req, res) => {
+const uploadImage = async (req, res) => {
     try {
         const { id } = req.params;
-        const { filename } = req.file;
-        const filePath = req.file.path; // The path to the file on your server
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "No file uploaded",
+            });
+        }
+
+        const { originalname } = req.file;
+        const filePath = req.file.path;
 
         // Read the file
         const fileBuffer = fs.readFileSync(filePath);
@@ -54,7 +62,7 @@ export const uploadImage = async (req, res) => {
         const { data, error } = await supabase
             .storage
             .from('ebook') // Replace with your Supabase bucket name
-            .upload(`pictures/${filename}`, fileBuffer, {
+            .upload(`pictures/${originalname}`, fileBuffer, {
                 contentType: req.file.mimetype,
             });
 
@@ -66,7 +74,7 @@ export const uploadImage = async (req, res) => {
         const publicUrl = supabase
             .storage
             .from('ebook')
-            .getPublicUrl(`pictures/${filename}`).publicURL;
+            .getPublicUrl(`pictures/${originalname}`).publicURL;
 
         if (id) {
             const existingImage = await Image.findByPk(id);
@@ -98,6 +106,11 @@ export const uploadImage = async (req, res) => {
             message: "Internal Server Error",
             error: error.message,
         });
+    } finally {
+        // Clean up the uploaded file
+        if (req.file) {
+            fs.unlinkSync(req.file.path);
+        }
     }
 };
 
