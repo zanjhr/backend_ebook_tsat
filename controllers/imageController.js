@@ -1,7 +1,7 @@
 import Image from "../models/imageModel.js";
 import supabase from '../config/supabase.js'; // Import your Supabase client
 import fs from 'fs';
-const { Image } = require('../models/imageModel.js'); // Adjust the path as needed
+// const { Image } = require('../models/imageModel.js'); // Adjust the path as needed
 
 
 // export const uploadImage = async (req, res) => {
