@@ -53,8 +53,8 @@ export const uploadImage = async (req, res) => {
         // Upload to Supabase storage
         const { data, error } = await supabase
             .storage
-            .from('your-bucket-name') // Replace with your Supabase bucket name
-            .upload(`public/${filename}`, fileBuffer, {
+            .from('ebook') // Replace with your Supabase bucket name
+            .upload(`pictures/${filename}`, fileBuffer, {
                 contentType: req.file.mimetype,
             });
 
@@ -65,8 +65,8 @@ export const uploadImage = async (req, res) => {
         // Get the public URL of the uploaded file
         const publicUrl = supabase
             .storage
-            .from('pictures')
-            .getPublicUrl(`public/${filename}`).publicURL;
+            .from('ebook')
+            .getPublicUrl(`pictures/${filename}`).publicURL;
 
         if (id) {
             const existingImage = await Image.findByPk(id);
