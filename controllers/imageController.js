@@ -54,12 +54,13 @@ export const uploadImage = async (req, res) => {
         }
 
         const { originalname, buffer, mimetype } = req.file;
+        const uniqueFilename = `${uuidv4()}-${originalname}`;
 
         // Upload to Supabase storage
         const { data, error } = await supabase
             .storage
             .from('ebook') // Replace with your Supabase bucket name
-            .upload(`pictures/${originalname}`, buffer, {
+            .upload(`pictures/${uniqueFilename}`, buffer, {
                 contentType: mimetype,
             });
 
@@ -71,7 +72,7 @@ export const uploadImage = async (req, res) => {
         const { publicURL } = supabase
             .storage
             .from('ebook')
-            .getPublicUrl(`pictures/${originalname}`);
+            .getPublicUrl(`pictures/${uniqueFilename}`);
 
         if (!publicURL) {
             throw new Error("Failed to retrieve public URL for the uploaded file");
@@ -109,6 +110,7 @@ export const uploadImage = async (req, res) => {
         });
     }
 };
+
 
 export const getImageByID = async (req, res) => {
     try {
