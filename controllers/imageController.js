@@ -1,6 +1,7 @@
 import Image from "../models/imageModel.js";
 import supabase from '../config/supabase.js'; // Import your Supabase client
 import fs from 'fs';
+const { Image } = require('../models/imageModel.js'); // Adjust the path as needed
 
 
 // export const uploadImage = async (req, res) => {
@@ -44,6 +45,14 @@ import fs from 'fs';
 export const uploadImage = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "No file uploaded",
+            });
+        }
+
         const { filename } = req.file;
         const filePath = req.file.path; // The path to the file on your server
 

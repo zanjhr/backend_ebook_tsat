@@ -1,4 +1,4 @@
-import express from "express";
+    import express from "express";
 import upload from "../middlewares/multerMiddleware.js";
 import { uploadImage, getImageByID } from "../controllers/imageController.js";
 
