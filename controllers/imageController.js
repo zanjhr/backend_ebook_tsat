@@ -2,30 +2,21 @@ import Image from "../models/imageModel.js";
 import supabase from '../config/supabase.js'; // Import your Supabase client
 import fs from 'fs';
 
-// Function to upload an image
+
 export const uploadImage = async (req, res) => {
     try {
         const { id } = req.params;
+        const { originalname } = req.file;
+        const fileBuffer = req.file.buffer;
 
-        // Check if a file is uploaded
-        if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                message: "No file uploaded",
-            });
-        }
-
-        const { originalname } = req.file; // Get the original file name
-        const filePath = req.file.path; // Path to the uploaded file
-
-        // Read the file
-        const fileBuffer = fs.readFileSync(filePath);
+        // Create a unique filename for Supabase storage
+        const uniqueFilename = `${Date.now()}-${originalname}`;
 
         // Upload to Supabase storage
-        const { error } = await supabase
+        const { data, error } = await supabase
             .storage
-            .from('ebook') // Replace with your Supabase bucket name
-            .upload(`pictures/${originalname}`, fileBuffer, {
+            .from('ebook')
+            .upload(`pictures/${uniqueFilename}`, fileBuffer, {
                 contentType: req.file.mimetype,
             });
 
@@ -37,14 +28,14 @@ export const uploadImage = async (req, res) => {
         const publicUrl = supabase
             .storage
             .from('ebook')
-            .getPublicUrl(`pictures/${originalname}`).publicURL;
+            .getPublicUrl(`pictures/${uniqueFilename}`).publicURL;
 
         if (id) {
             const existingImage = await Image.findByPk(id);
 
             if (existingImage) {
-                // If ID found, replace the existing image
-                await existingImage.update({ filename: publicUrl });
+                // If ID found, update the existing image filename to "edi"
+                await existingImage.update({ filename: `${uniqueFilename}` });
 
                 return res.status(200).json({
                     success: true,
@@ -54,8 +45,8 @@ export const uploadImage = async (req, res) => {
             }
         }
 
-        // If ID not found, create a new image entry
-        const newImage = await Image.create({ filename: publicUrl });
+        // If ID not found, create a new image entry with filename "edi"
+        const newImage = await Image.create({ filename: `${uniqueFilename}` });
 
         res.status(201).json({
             success: true,
@@ -69,15 +60,14 @@ export const uploadImage = async (req, res) => {
             message: "Internal Server Error",
             error: error.message,
         });
-    } finally {
-        // Clean up the uploaded file
-        if (req.file) {
-            fs.unlinkSync(req.file.path);
-        }
     }
 };
 
-// Function to retrieve an image by ID
+
+
+
+
+// Mengambil Gambar berdasarkan ID
 export const getImageByID = async (req, res) => {
     try {
         const { id } = req.params;
