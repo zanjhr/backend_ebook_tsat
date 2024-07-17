@@ -1,6 +1,7 @@
 import Image from "../models/imageModel.js";
 import supabase from '../config/supabase.js'; // Import your Supabase client
 import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 // const { Image } = require('../models/imageModel.js'); // Adjust the path as needed
 
 
