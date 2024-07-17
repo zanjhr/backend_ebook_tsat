@@ -73,6 +73,10 @@ export const uploadImage = async (req, res) => {
             .from('ebook')
             .getPublicUrl(`pictures/${originalname}`);
 
+        if (!publicURL) {
+            throw new Error("Failed to retrieve public URL for the uploaded file");
+        }
+
         if (id) {
             const existingImage = await Image.findByPk(id);
 
