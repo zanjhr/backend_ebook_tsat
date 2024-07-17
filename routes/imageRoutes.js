@@ -4,7 +4,8 @@ import { uploadImage, getImageByID } from "../controllers/imageController.js";
 
 const router = express.Router();
 
-router.post("/upload-image/:id?", upload.single("image"), uploadImage);
+// router.post("/upload-image/:id?", upload.single("image"), uploadImage);
+router.post('/upload-image/:id?', upload.single('image'), uploadImage);
 
 router.get("/get-image/:id", getImageByID);
 
