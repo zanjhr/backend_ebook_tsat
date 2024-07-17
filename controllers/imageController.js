@@ -95,3 +95,44 @@ export const getImageByID = async (req, res) => {
         });
     }
 };
+
+export const displayImage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const image = await Image.findByPk(id, { attributes: ['id', 'filename'] });
+
+        if (!image) {
+            return res.status(404).json({
+                success: false,
+                message: "Image Not Found",
+            });
+        }
+
+        // Dapatkan data gambar dari Supabase
+        const { data, error } = await supabase.storage.from('ebook').download(`pictures/${image.filename}`);
+
+        if (error) {
+            return res.status(404).json({
+                success: false,
+                message: "Image download failed",
+            });
+        }
+
+        // Mengatur header respons untuk gambar
+        res.set({
+            'Content-Type': 'image/jpeg', // Atur tipe konten sesuai gambar
+            'Content-Disposition': `inline; filename="${image.filename}"`,
+        });
+
+        // Mengalirkan data gambar ke respons
+        const buffer = await data.arrayBuffer(); // Mengambil data sebagai array buffer
+        res.end(Buffer.from(buffer)); // Mengirim buffer sebagai respons
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
