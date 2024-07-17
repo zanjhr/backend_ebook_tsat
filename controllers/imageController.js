@@ -2,49 +2,12 @@ import Image from "../models/imageModel.js";
 import supabase from '../config/supabase.js'; // Import your Supabase client
 import fs from 'fs';
 
-
-// export const uploadImage = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         const { filename } = req.file;
-
-//         if (id) {
-//             const existingImage = await Image.findByPk(id);
-
-//             if (existingImage) {
-//                 // Jika ID ditemukan ganti gambar yang sudah ada
-//                 await existingImage.update({ filename });
-
-//                 return res.status(200).json({
-//                     success: true,
-//                     message: "Image Replaced successfully",
-//                     data: existingImage,
-//                 });
-//             }
-//         }
-
-//         // Jika ID belum ditemukan 
-//         const newImage = await Image.create({ filename });
-
-//         res.status(201).json({
-//             success: true,
-//             message: "Image uploaded successfully",
-//             data: newImage,
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({
-//             success: false,
-//             message: "Internal Server Error",
-//             error: error.message,
-//         });
-//     }
-// };
-
-const uploadImage = async (req, res) => {
+// Function to upload an image
+export const uploadImage = async (req, res) => {
     try {
         const { id } = req.params;
 
+        // Check if a file is uploaded
         if (!req.file) {
             return res.status(400).json({
                 success: false,
@@ -52,14 +15,14 @@ const uploadImage = async (req, res) => {
             });
         }
 
-        const { originalname } = req.file;
-        const filePath = req.file.path;
+        const { originalname } = req.file; // Get the original file name
+        const filePath = req.file.path; // Path to the uploaded file
 
         // Read the file
         const fileBuffer = fs.readFileSync(filePath);
 
         // Upload to Supabase storage
-        const { data, error } = await supabase
+        const { error } = await supabase
             .storage
             .from('ebook') // Replace with your Supabase bucket name
             .upload(`pictures/${originalname}`, fileBuffer, {
@@ -114,7 +77,7 @@ const uploadImage = async (req, res) => {
     }
 };
 
-// Mengambil Gambar berdasarkan ID
+// Function to retrieve an image by ID
 export const getImageByID = async (req, res) => {
     try {
         const { id } = req.params;
