@@ -24,26 +24,23 @@ export const uploadImage = async (req, res) => {
                 contentType: mimetype,
             });
 
-        // Log upload response
-        console.log('Supabase upload response:', data, error);
-
+        // Check for upload error
         if (error) {
-            throw error;
+            console.error('Upload error:', error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to upload file",
+                error: error.message,
+            });
         }
 
-        // Get the public URL of the uploaded file
-        const { publicURL, error: urlError } = supabase
+        // Retrieve public URL
+        const { publicURL } = supabase
             .storage
             .from('ebook')
             .getPublicUrl(`pictures/${uniqueFilename}`);
 
-        // Log public URL response
-        console.log('Supabase public URL response:', publicURL, urlError);
-
-        if (urlError) {
-            throw urlError;
-        }
-
+        // Check if public URL is generated
         if (!publicURL) {
             throw new Error("Failed to retrieve public URL for the uploaded file");
         }
@@ -72,7 +69,7 @@ export const uploadImage = async (req, res) => {
             data: newImage,
         });
     } catch (error) {
-        console.error(error);
+        console.error('General error:', error);
         res.status(500).json({
             success: false,
             message: "Internal Server Error",
