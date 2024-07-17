@@ -1,56 +1,79 @@
-import { v4 as uuidv4 } from 'uuid';
 import Image from "../models/imageModel.js";
 import supabase from '../config/supabase.js'; // Import your Supabase client
+import fs from 'fs';
+
+
+// export const uploadImage = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         const { filename } = req.file;
+
+//         if (id) {
+//             const existingImage = await Image.findByPk(id);
+
+//             if (existingImage) {
+//                 // Jika ID ditemukan ganti gambar yang sudah ada
+//                 await existingImage.update({ filename });
+
+//                 return res.status(200).json({
+//                     success: true,
+//                     message: "Image Replaced successfully",
+//                     data: existingImage,
+//                 });
+//             }
+//         }
+
+//         // Jika ID belum ditemukan 
+//         const newImage = await Image.create({ filename });
+
+//         res.status(201).json({
+//             success: true,
+//             message: "Image uploaded successfully",
+//             data: newImage,
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Internal Server Error",
+//             error: error.message,
+//         });
+//     }
+// };
 
 export const uploadImage = async (req, res) => {
     try {
         const { id } = req.params;
+        const { filename } = req.file;
+        const filePath = req.file.path; // The path to the file on your server
 
-        if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                message: "No file uploaded",
-            });
-        }
-
-        const { originalname, buffer, mimetype } = req.file;
-        const uniqueFilename = `${uuidv4()}-${originalname}`;
+        // Read the file
+        const fileBuffer = fs.readFileSync(filePath);
 
         // Upload to Supabase storage
         const { data, error } = await supabase
             .storage
             .from('ebook') // Replace with your Supabase bucket name
-            .upload(`pictures/${uniqueFilename}`, buffer, {
-                contentType: mimetype,
+            .upload(`pictures/${filename}`, fileBuffer, {
+                contentType: req.file.mimetype,
             });
 
-        // Check for upload error
         if (error) {
-            console.error('Upload error:', error);
-            return res.status(500).json({
-                success: false,
-                message: "Failed to upload file",
-                error: error.message,
-            });
+            throw error;
         }
 
-        // Retrieve public URL
-        const { publicURL } = supabase
+        // Get the public URL of the uploaded file
+        const publicUrl = supabase
             .storage
             .from('ebook')
-            .getPublicUrl(`pictures/${uniqueFilename}`);
-
-        // Check if public URL is generated
-        if (!publicURL) {
-            throw new Error("Failed to retrieve public URL for the uploaded file");
-        }
+            .getPublicUrl(`pictures/${filename}`).publicURL;
 
         if (id) {
             const existingImage = await Image.findByPk(id);
 
             if (existingImage) {
                 // If ID found, replace the existing image
-                await existingImage.update({ filename: publicURL });
+                await existingImage.update({ filename: publicUrl });
 
                 return res.status(200).json({
                     success: true,
@@ -61,7 +84,7 @@ export const uploadImage = async (req, res) => {
         }
 
         // If ID not found, create a new image entry
-        const newImage = await Image.create({ filename: publicURL });
+        const newImage = await Image.create({ filename: publicUrl });
 
         res.status(201).json({
             success: true,
@@ -69,7 +92,7 @@ export const uploadImage = async (req, res) => {
             data: newImage,
         });
     } catch (error) {
-        console.error('General error:', error);
+        console.error(error);
         res.status(500).json({
             success: false,
             message: "Internal Server Error",
@@ -78,26 +101,28 @@ export const uploadImage = async (req, res) => {
     }
 };
 
-
+// Mengambil Gambar berdasarkan ID
 export const getImageByID = async (req, res) => {
     try {
         const { id } = req.params;
-        const image = await Image.findByPk(id);
+        const image = await Image.findByPk(id, { attributes: ['id', 'filename'] });
 
         if (!image) {
             return res.status(404).json({
                 success: false,
-                message: "Image not found",
+                message: "Image Not Found",
             });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
+            message: "Image Retrieved Successfully",
             data: image,
         });
+
     } catch (error) {
         console.error(error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Internal Server Error",
             error: error.message,
