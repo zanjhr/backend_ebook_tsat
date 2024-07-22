@@ -139,7 +139,7 @@ export const getImageByID = async (req, res) => {
 
 export const displayImage = async (req, res) => {
     try {
-        const { filename } = req.params;
+        const { id, filename } = req.params;
 
         // Dapatkan data gambar dari Supabase
         const { data, error } = await supabase.storage.from('ebook').download(`pictures/${filename}`);
