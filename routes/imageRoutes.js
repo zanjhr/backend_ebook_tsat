@@ -9,9 +9,9 @@ router.post('/upload-image/:id?', upload.single('image'), uploadImage);
 
 router.get("/get-image/:id", getImageByID);
 
-router.get('/display/:id', displayImage);
+// router.get('/display/:id', displayImage);
 
-// router.get('/display/:filename', displayImage);
+router.get('/display/:filename', displayImage);
 
 
 export default router;
