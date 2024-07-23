@@ -96,6 +96,84 @@ export const getImageByID = async (req, res) => {
     }
 };
 
+export const displayImage = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Fetch the image entry from the database using the ID
+        const image = await Image.findByPk(id);
+
+        if (!image) {
+            return res.status(404).json({
+                success: false,
+                message: "Image Not Found",
+            });
+        }
+
+        const filename = image.filename;
+
+        // Fetch the image data from Supabase using the filename
+        const { data, error } = await supabase.storage.from('ebook').download(`pictures/${filename}`);
+
+        if (error) {
+            return res.status(404).json({
+                success: false,
+                message: "Image download failed",
+            });
+        }
+
+        // Set response headers for the image
+        res.set({
+            'Content-Type': 'image/jpeg', // Adjust the content type according to the image type
+            'Content-Disposition': `inline; filename="${filename}"`,
+        });
+
+        // Stream the image data to the response
+        const buffer = await data.arrayBuffer(); // Get the data as an array buffer
+        res.end(Buffer.from(buffer)); // Send the buffer as the response
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
+
+// export const displayImage = async (req, res) => {
+//     try {
+//         const { id, filename } = req.params;
+
+//         // Dapatkan data gambar dari Supabase
+//         const { data, error } = await supabase.storage.from('ebook').download(`pictures/${filename}`);
+
+//         if (error) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: "Image download failed",
+//             });
+//         }
+
+//         // Mengatur header respons untuk gambar
+//         res.set({
+//             'Content-Type': 'image/jpeg', // Atur tipe konten sesuai gambar
+//             'Content-Disposition': `inline; filename="${filename}"`,
+//         });
+
+//         // Mengalirkan data gambar ke respons
+//         const buffer = await data.arrayBuffer(); // Mengambil data sebagai array buffer
+//         res.end(Buffer.from(buffer)); // Mengirim buffer sebagai respons
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({
+//             success: false,
+//             message: "Internal Server Error",
+//             error: error.message,
+//         });
+//     }
+// };
+
 // export const displayImage = async (req, res) => {
 //     try {
 //         const { id } = req.params;
@@ -137,35 +215,3 @@ export const getImageByID = async (req, res) => {
 //     }
 // };
 
-export const displayImage = async (req, res) => {
-    try {
-        const { id, filename } = req.params;
-
-        // Dapatkan data gambar dari Supabase
-        const { data, error } = await supabase.storage.from('ebook').download(`pictures/${filename}`);
-
-        if (error) {
-            return res.status(404).json({
-                success: false,
-                message: "Image download failed",
-            });
-        }
-
-        // Mengatur header respons untuk gambar
-        res.set({
-            'Content-Type': 'image/jpeg', // Atur tipe konten sesuai gambar
-            'Content-Disposition': `inline; filename="${filename}"`,
-        });
-
-        // Mengalirkan data gambar ke respons
-        const buffer = await data.arrayBuffer(); // Mengambil data sebagai array buffer
-        res.end(Buffer.from(buffer)); // Mengirim buffer sebagai respons
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error",
-            error: error.message,
-        });
-    }
-};
